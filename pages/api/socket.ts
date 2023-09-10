@@ -1,4 +1,4 @@
-import { Server } from 'Socket.IO'
+import { Server } from 'socket.io'
 import { v4 as uuidv4 } from 'uuid';
 
 // map to store the data of various ongoing games
