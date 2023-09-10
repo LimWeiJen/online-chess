@@ -13,28 +13,22 @@ let roomId = -1;
 
 const ChessBoard = () => {
   const [fen, setfen] = useState("start");
-  const [orientation, setorientation] = useState<"white" | "black">("white");
-  const [waiting, setwaiting] = useState(false);
   
   useEffect(() => {
     fetch('/api/socket').then(() => {
       socket = io();
 
       socket.on('connection', () => {
-        console.log('connected');
+        socket.emit("join", 0);
       })
 
       socket.on('player', (msg: any) => {
         color = msg.color;
         players = msg.players;
         roomId = msg.roomId;
-        setorientation(msg.color);
 
         if (players == 2) {
-          setwaiting(false);
           socket.emit('play', msg.roomId);
-        } else {
-          setwaiting(true);
         }
       })
 
@@ -53,18 +47,11 @@ const ChessBoard = () => {
           play = false;
         }
       })
-
-      socket.on('gameOver', (msg: any) => {
-            if (msg == roomId) {
-              console.log("game over");
-              play = true;
-            }
-          })
     })
   }, [])
 
   function makeAMove(move: any) {
-    if (play || game.isGameOver() || game.turn() == 'w' && color == 'black' || game.turn() == 'b' && color == 'white') return;
+    if (play || game.turn() == 'w' && color == 'black' || game.turn() == 'b' && color == 'white') return;
     try {
       game.move(move);
       setfen(game.fen());
@@ -73,9 +60,6 @@ const ChessBoard = () => {
         board: game.fen(),
         room: roomId
       })
-      if (game.isGameOver()) {
-        socket.emit('gameOver', roomId);
-      }
     } catch (e) {
       return null;
     }
@@ -85,21 +69,17 @@ const ChessBoard = () => {
     const move = makeAMove({
       from: sourceSquare,
       to: targetSquare,
-      promotion: "q",
+      promotion: "q", // always promote to a queen for example simplicity
     });
 
+    // TODO: Singal an illegal move
     if (move === null) return false;
     return true;
   }
 
   return (
-  <div className='chssboard'>
-    <div className='board'>
-    <Chessboard position={fen} onPieceDrop={onDrop} boardOrientation={orientation} boardWidth={500} />
-    </div>
-    <div className='menu'>
-    <button className='btn' onClick={() => socket.emit("join", 0)}>{waiting ? 'Loading...' : 'Play'}</button>
-    </div>
+  <div>
+    <Chessboard position={fen} onPieceDrop={onDrop} />
   </div>
   )
 }

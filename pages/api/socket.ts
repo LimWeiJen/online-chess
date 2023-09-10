@@ -1,8 +1,9 @@
 import { Server } from 'Socket.IO'
-import { v4 as uuidv4 } from 'uuid';
 
-var games = new Map();
-var i = 0;
+var games = Array(100);
+for (let i = 0; i < 100; i++) {
+    games[i] = {players: 0 , pid: [0 , 0]};
+}
 
 var ps = new Map();
  
@@ -16,31 +17,22 @@ const SocketHandler = (req: any, res: any) => {
 
     io.on('connection', socket => {
       socket.emit('connection')
-      var playerId = uuidv4();
+      var playerId = Math.floor((Math.random() * 100) + 1)
       console.log(playerId + 'connected');
 
-      socket.on('join', () => {
-        if (ps.has(playerId)) return;
-        ps.set(playerId, true);
-
-        if (games.has(i) && games.get(i).players < 2) {
-          var g = games.get(i);
-          g.players++;
-          g.pid[1] = playerId;
-          games.set(i, g);
+      socket.on('join', (i) => {
+        if (games[i].players < 2 && !ps.has(playerId)) {
+          ps.set(playerId, true);
+          games[i].players++;
+          games[i].pid[games[i].players - 1] = playerId;
         } else {
-          i++;
-          games.set(i, {
-            players: 1,
-            pid: [playerId, -1]
-          })
+          socket.emit("full", i);
         }
-
-        var players = games.get(i).players;
+        var players = games[i].players;
         var color = "white";
         if (players % 2 == 0) color = "black"
 
-        console.log(games.get(i));
+        console.log(games[i]);
 
         socket.emit("player", {
           playerId, players, color, roomId: i
@@ -51,14 +43,12 @@ const SocketHandler = (req: any, res: any) => {
 
       socket.on("play", (msg) => socket.broadcast.emit('play', msg));
 
-      socket.on('gameOver', (roomId) => {
-        games.delete(roomId);
-        socket.broadcast.emit('gameOver', roomId);
-      })
-
       // if a user disconnects just print their playerID
       socket.on('disconnect', function () {
-        //TODO: come up with a disconnect protocol
+        for (let i = 0; i < 100; i++) {
+          if (games[i].pid[0] == playerId || games[i].pid[1] == playerId)
+            games[i].players--;
+        } 
         console.log(playerId + ' disconnected');
       });
     })
