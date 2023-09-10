@@ -1,6 +1,6 @@
 import { Chess } from 'chess.js'
 import React, { useState, useEffect } from 'react'
-import io from 'Socket.IO-client'
+import io from 'socket.io-client'
 import { Chessboard } from 'react-chessboard'
 let socket: any
 
